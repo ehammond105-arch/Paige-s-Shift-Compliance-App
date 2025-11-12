@@ -1,0 +1,5 @@
+{
+  "name": "Paige’s Bistro Shift Compliance App",
+  "description": "A comprehensive application for restaurant employees to complete daily checklists and for managers to audit submissions and manage checklist content. Features include temperature logging, task tracking, and a full audit trail.",
+  "requestFramePermissions": []
+}
