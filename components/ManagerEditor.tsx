@@ -7,6 +7,9 @@ const ManagerEditor: React.FC<ManagerEditorProps> = ({ checklists, onUpdateCheck
     const [newTaskText, setNewTaskText] = useState('');
     const [newListName, setNewListName] = useState('');
 
+    const [tasks, setTasks] = useState<string[]>([]);
+    const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+
     useEffect(() => {
         if (checklists.length > 0 && !checklists.find(l => l.id === selectedListId)) {
             const defaultList = checklists.find(l => l.id === DISPLAY_ORDER_IDS[0]) || checklists[0];
@@ -15,6 +18,15 @@ const ManagerEditor: React.FC<ManagerEditorProps> = ({ checklists, onUpdateCheck
     }, [checklists, selectedListId]);
 
     const selectedList = checklists.find(l => l.id === selectedListId);
+    
+    useEffect(() => {
+        if (selectedList) {
+            setTasks(selectedList.tasks);
+        } else {
+            setTasks([]);
+        }
+    }, [selectedList]);
+
 
     const handleAddTask = async () => {
         if (!selectedList || !newTaskText.trim()) return;
@@ -61,6 +73,37 @@ const ManagerEditor: React.FC<ManagerEditorProps> = ({ checklists, onUpdateCheck
         }
     };
 
+    const handleDragStart = (index: number) => {
+        setDraggedItemIndex(index);
+    };
+
+    const handleDragEnter = (targetIndex: number) => {
+        if (draggedItemIndex === null || draggedItemIndex === targetIndex) return;
+
+        const reorderedTasks = [...tasks];
+        const [draggedItem] = reorderedTasks.splice(draggedItemIndex, 1);
+        reorderedTasks.splice(targetIndex, 0, draggedItem);
+        
+        setDraggedItemIndex(targetIndex);
+        setTasks(reorderedTasks);
+    };
+
+    const handleDragEnd = async () => {
+        if (!selectedList || draggedItemIndex === null) return;
+        
+        const originalTasks = selectedList.tasks;
+        const hasChanged = originalTasks.length !== tasks.length || tasks.some((task, index) => task !== originalTasks[index]);
+
+        if (hasChanged) {
+            const updatedList = { ...selectedList, tasks };
+            const newChecklists = checklists.map(l => l.id === selectedListId ? updatedList : l);
+            await onUpdateChecklists(newChecklists);
+        }
+        
+        setDraggedItemIndex(null);
+    };
+
+
     if (!checklists) {
         return <div className="text-center p-8">Loading checklists...</div>;
     }
@@ -96,16 +139,34 @@ const ManagerEditor: React.FC<ManagerEditorProps> = ({ checklists, onUpdateCheck
 
             {selectedList && (
                 <div className="space-y-4 border border-[var(--color-border-primary)] p-4 rounded-lg bg-[var(--color-bg-tertiary)]">
-                    <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">{selectedList.name} ({selectedList.tasks.length} tasks)</h3>
+                    <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">{selectedList.name} ({tasks.length} tasks)</h3>
                     <div className="flex space-x-2">
                         <input type="text" placeholder="New Task Description (e.g., Clean mop sink)" value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} className="flex-1 px-3 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border-secondary)] rounded-lg focus:ring-[var(--color-accent-secondary)] focus:border-[var(--color-accent-secondary)]"/>
                         <button onClick={handleAddTask} className="px-4 py-2 bg-[var(--color-bg-accent-secondary)] text-white rounded-lg shadow-md hover:bg-[var(--color-bg-accent-secondary-hover)] transition">Add Task</button>
                     </div>
                     <ul className="space-y-2 max-h-60 overflow-y-auto">
-                        {selectedList.tasks.map((task, index) => (
-                            <li key={index} className="flex items-center justify-between p-2 bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-md">
-                                <span className="text-[var(--color-text-primary)] text-sm flex-1">{task}</span>
-                                <button onClick={() => handleDeleteTask(index)} className="text-[#EF4444] hover:text-[#B91C1C] transition ml-4" title="Delete Task">
+                        {tasks.map((task, index) => (
+                             <li 
+                                key={index}
+                                draggable
+                                onDragStart={() => handleDragStart(index)}
+                                onDragEnter={() => handleDragEnter(index)}
+                                onDragEnd={handleDragEnd}
+                                onDragOver={(e) => e.preventDefault()}
+                                className={`flex items-center justify-between p-2 bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-md transition-all duration-200 cursor-grab ${draggedItemIndex === index ? 'opacity-50 shadow-lg' : 'opacity-100'}`}
+                            >
+                                <div className="flex items-center flex-1 min-w-0">
+                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-[var(--color-text-subtle)] flex-shrink-0">
+                                        <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
+                                        <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
+                                        <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+                                        <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+                                        <circle cx="9" cy="18" r="1.5" fill="currentColor"/>
+                                        <circle cx="15" cy="18" r="1.5" fill="currentColor"/>
+                                    </svg>
+                                    <span className="text-[var(--color-text-primary)] text-sm flex-1 truncate">{task}</span>
+                                </div>
+                                <button onClick={() => handleDeleteTask(index)} className="text-[#EF4444] hover:text-[#B91C1C] transition ml-4 flex-shrink-0" title="Delete Task">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                                 </button>
                             </li>
