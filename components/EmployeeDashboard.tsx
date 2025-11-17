@@ -112,37 +112,40 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
             setSubmissionMessage({ text: 'Please complete all checklist tasks before submitting.', type: 'warning' });
             return;
         }
+        
+        const confirmationMessage = `You are about to submit the "${selectedList.name}" checklist for ${employeeName.trim()} at ${location}.\n\nAre you sure you want to proceed? This will notify the manager.`;
+        if (window.confirm(confirmationMessage)) {
+            try {
+                const newSubmission = {
+                    id: uuidv4(),
+                    checklistId: selectedList.id,
+                    checklistName: selectedList.name,
+                    submitterId: userId,
+                    employeeName: employeeName.trim(), 
+                    location,
+                    completionDate,     
+                    completionTime,
+                    completedTasks,
+                    totalTasks,
+                    timestamp: new Date().toISOString(),
+                    notificationEmail: MANAGER_EMAIL,
+                    tempLogs: requiresTempLog ? tempLogs : null, 
+                };
+                
+                await onAddSubmission(newSubmission);
 
-        try {
-            const newSubmission = {
-                id: uuidv4(),
-                checklistId: selectedList.id,
-                checklistName: selectedList.name,
-                submitterId: userId,
-                employeeName: employeeName.trim(), 
-                location,
-                completionDate,     
-                completionTime,
-                completedTasks,
-                totalTasks,
-                timestamp: new Date().toISOString(),
-                notificationEmail: MANAGER_EMAIL,
-                tempLogs: requiresTempLog ? tempLogs : null, 
-            };
-            
-            await onAddSubmission(newSubmission);
-
-            console.log(`--- EMAIL NOTIFICATION SIMULATED --- To: ${MANAGER_EMAIL}, Subject: CHECKLIST COMPLETED: ${selectedList.name} by ${employeeName} at ${location}`);
-            
-            setTaskStatus({});
-            setTempLogs({});
-            setEmployeeName(''); 
-            setLocation('Austell');
-            setCompletionTime('09:00'); 
-            setSubmissionMessage({ text: `${selectedList.name} submitted successfully by ${employeeName} (${location})!`, type: 'success' });
-        } catch (error) {
-            console.error("Error submitting checklist:", error);
-            setSubmissionMessage({ text: `Submission failed: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' });
+                console.log(`--- EMAIL NOTIFICATION SIMULATED --- To: ${MANAGER_EMAIL}, Subject: CHECKLIST COMPLETED: ${selectedList.name} by ${employeeName} at ${location}`);
+                
+                setTaskStatus({});
+                setTempLogs({});
+                setEmployeeName(''); 
+                setLocation('Austell');
+                setCompletionTime('09:00'); 
+                setSubmissionMessage({ text: `${selectedList.name} submitted successfully by ${employeeName} (${location})!`, type: 'success' });
+            } catch (error) {
+                console.error("Error submitting checklist:", error);
+                setSubmissionMessage({ text: `Submission failed: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' });
+            }
         }
     };
 
