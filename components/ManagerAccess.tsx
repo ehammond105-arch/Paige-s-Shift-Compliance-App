@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { MANAGER_PASSWORD } from '../constants';
+import { MANAGER_PASSWORD, MANAGER_TEST_PASSWORD } from '../constants';
 import ManagerEditor from './ManagerEditor';
 import ManagerActivityLog from './ManagerActivityLog';
 import { ManagerAccessProps, Checklist, GithubDb } from '../types';
@@ -11,7 +10,7 @@ const ManagerAccess: React.FC<ManagerAccessProps> = ({ db, onUpdateDb }) => {
     const [error, setError] = useState('');
 
     const handleLogin = () => {
-        if (password === MANAGER_PASSWORD) {
+        if (password === MANAGER_PASSWORD || password === MANAGER_TEST_PASSWORD) {
             setIsAuthenticated(true);
             setError('');
         } else {
