@@ -112,7 +112,20 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
             return;
         }
         
-        const confirmationMessage = `You are about to submit the "${selectedList.name}" checklist for ${employeeName.trim()} at ${location}.\n\nAre you sure you want to proceed? This will notify the manager.`;
+        const confirmationDetails = [
+            `Checklist: ${selectedList.name}`,
+            `Employee: ${employeeName.trim()}`,
+            `Location: ${location}`,
+            `Date & Time: ${completionDate} at ${completionTime}`,
+            `Tasks Completed: ${completedTasks.length} of ${totalTasks}`,
+        ];
+
+        if (requiresTempLog) {
+            confirmationDetails.push('Includes: 11 Temperature Logs');
+        }
+
+        const confirmationMessage = `Please confirm your submission details:\n\n${confirmationDetails.join('\n')}\n\nThis action is final and will send a notification to the manager (${MANAGER_EMAIL}).\n\nDo you want to proceed?`;
+
         if (window.confirm(confirmationMessage)) {
             try {
                 const newSubmission = {
