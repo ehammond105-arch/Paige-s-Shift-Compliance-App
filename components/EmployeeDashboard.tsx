@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Checklist, TempLogs, EmployeeDashboardProps } from '../types';
@@ -150,9 +149,9 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
     };
 
     const getMessageStyle = (type: string) => {
-        if (type === 'success') return 'bg-green-100 text-green-800 border-green-400';
-        if (type === 'warning') return 'bg-yellow-100 text-yellow-800 border-yellow-400';
-        if (type === 'error') return 'bg-red-100 text-red-800 border-red-400';
+        if (type === 'success') return 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-[var(--color-success-border)]';
+        if (type === 'warning') return 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] border-[var(--color-warning-border)]';
+        if (type === 'error') return 'bg-[var(--color-error-bg)] text-[var(--color-error-text)] border-[var(--color-error-border)]';
         return '';
     };
 
@@ -165,20 +164,20 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-extrabold text-gray-800 border-b pb-2">👋 Employee Dashboard: Daily Tasks</h2>
+            <h2 className="text-2xl font-extrabold text-[var(--color-text-primary)] border-b border-[var(--color-border-primary)] pb-2">👋 Employee Dashboard: Daily Tasks</h2>
             
             {submissionMessage.text && <div className={`p-3 border rounded-lg font-medium ${getMessageStyle(submissionMessage.type)}`}>{submissionMessage.text}</div>}
 
-            <div className="bg-white p-5 rounded-xl shadow-lg border-t-4 border-indigo-500 space-y-4">
-                 <h3 className="text-xl font-bold text-indigo-700">Task Information</h3>
+            <div className="bg-[var(--color-bg-primary)] p-5 rounded-xl shadow-lg border-t-4 border-[var(--color-border-accent)] space-y-4">
+                 <h3 className="text-xl font-bold text-[var(--color-text-accent)]">Task Information</h3>
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">Employee Name:</label>
-                        <input type="text" placeholder="Your Full Name" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"/>
+                        <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Employee Name:</label>
+                        <input type="text" placeholder="Your Full Name" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-[var(--color-border-secondary)] rounded-md focus:ring-[var(--color-accent-secondary)] focus:border-[var(--color-accent-secondary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]"/>
                     </div>
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">Location:</label>
-                        <select value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm">
+                        <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Location:</label>
+                        <select value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-[var(--color-border-secondary)] focus:outline-none focus:ring-[var(--color-accent-secondary)] focus:border-[var(--color-accent-secondary)] sm:text-sm rounded-md shadow-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]">
                             <option value="Austell">Austell</option>
                             <option value="Smyrna">Smyrna</option>
                         </select>
@@ -186,17 +185,17 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
                 </div>
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">Date of Completion:</label>
-                        <input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"/>
+                        <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Date of Completion:</label>
+                        <input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-[var(--color-border-secondary)] rounded-md focus:ring-[var(--color-accent-secondary)] focus:border-[var(--color-accent-secondary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]"/>
                     </div>
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">Time of Completion:</label>
-                        <input type="time" value={completionTime} onChange={(e) => setCompletionTime(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"/>
+                        <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Time of Completion:</label>
+                        <input type="time" value={completionTime} onChange={(e) => setCompletionTime(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-[var(--color-border-secondary)] rounded-md focus:ring-[var(--color-accent-secondary)] focus:border-[var(--color-accent-secondary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]"/>
                     </div>
                 </div>
                 <div>
-                     <label className="block text-sm font-medium text-gray-700">Select Checklist:</label>
-                    <select onChange={(e) => setSelectedListId(e.target.value)} value={selectedListId} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm">
+                     <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Select Checklist:</label>
+                    <select onChange={(e) => setSelectedListId(e.target.value)} value={selectedListId} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-[var(--color-border-secondary)] focus:outline-none focus:ring-[var(--color-accent-secondary)] focus:border-[var(--color-accent-secondary)] sm:text-sm rounded-md shadow-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]">
                         {sortedChecklists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
                     </select>
                 </div>
@@ -205,20 +204,20 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
             {requiresTempLog && <TemperatureLogForm tempLogs={tempLogs} listId={selectedListId} onTempChange={handleTempChangeFromForm}/>}
 
             {selectedList && (
-                <div className="bg-white p-5 rounded-xl shadow-lg border-t-4 border-emerald-500">
+                <div className="bg-[var(--color-bg-primary)] p-5 rounded-xl shadow-lg border-t-4 border-[var(--color-accent-secondary)]">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-emerald-700">{selectedList.name}</h3>
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{completedCount}/{totalCount}</span>
+                        <h3 className="text-xl font-bold text-[var(--color-accent-secondary)]">{selectedList.name}</h3>
+                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isComplete ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'}`}>{completedCount}/{totalCount}</span>
                     </div>
                     <ul className="space-y-3">
                         {selectedList.tasks.map((task, index) => (
                             <li key={index} className="flex items-start">
-                                <input type="checkbox" checked={!!taskStatus[`${selectedListId}-${index}`]} onChange={() => handleCheck(index)} disabled={requiresTempLog && index >= getTempStartIndex(selectedListId)} className="mt-1 h-5 w-5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer disabled:opacity-50"/>
-                                <span className={`ml-3 text-gray-700 flex-1 ${taskStatus[`${selectedListId}-${index}`] ? 'line-through text-gray-400' : ''}`}>{task}</span>
+                                <input type="checkbox" checked={!!taskStatus[`${selectedListId}-${index}`]} onChange={() => handleCheck(index)} disabled={requiresTempLog && index >= getTempStartIndex(selectedListId)} className="mt-1 h-5 w-5 text-[var(--color-accent-secondary)] border-[var(--color-border-secondary)] rounded focus:ring-[var(--color-accent-secondary)] cursor-pointer disabled:opacity-50"/>
+                                <span className={`ml-3 text-[var(--color-text-primary)] flex-1 ${taskStatus[`${selectedListId}-${index}`] ? 'line-through text-[var(--color-text-subtle)]' : ''}`}>{task}</span>
                             </li>
                         ))}
                     </ul>
-                    <button onClick={handleSubmit} disabled={isDisabled} className={`mt-6 w-full py-3 rounded-xl text-white font-bold transition duration-300 shadow-lg ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                    <button onClick={handleSubmit} disabled={isDisabled} className={`mt-6 w-full py-3 rounded-xl text-white font-bold transition duration-300 shadow-lg ${isDisabled ? 'bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)] cursor-not-allowed' : 'bg-[var(--color-bg-accent-secondary)] hover:bg-[var(--color-bg-accent-secondary-hover)]'}`}>
                         {isComplete ? 'SUBMIT & NOTIFY MANAGER' : 'Complete All Requirements to Submit'}
                     </button>
                 </div>
