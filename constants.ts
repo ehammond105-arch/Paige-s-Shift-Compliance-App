@@ -1,7 +1,6 @@
+
 // --- System Configuration ---
 export const MANAGER_EMAIL = "manager@restaurant-app-alerts.com"; 
-export const MANAGER_PASSWORD = "Paiges"; 
-export const MANAGER_TEST_PASSWORD = "test"; // Added for easy testing
 
 // --- Temperature Logging Configuration (11 UNITS) ---
 export const TEMPERATURE_LOG_KEYS = [

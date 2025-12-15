@@ -49,6 +49,7 @@ export interface EmployeeDashboardProps {
 export interface ManagerAccessProps {
   db: GithubDb;
   onUpdateDb: (newDb: GithubDb) => Promise<void>;
+  user: User | null;
 }
 
 export interface ManagerEditorProps {
@@ -64,4 +65,48 @@ export interface TemperatureLogFormProps {
   tempLogs: TempLogs;
   listId: string;
   onTempChange: (key: string, value: string, listId: string) => void;
+}
+
+export type UserRole = 'owner' | 'manager' | 'employee';
+
+export interface User {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL?: string | null;
+    emailVerified: boolean;
+    role?: UserRole;
+    isActive?: boolean;
+    storeId?: string;
+}
+
+export interface FileRecord {
+    id: string;
+    name: string;
+    url: string;
+    path: string;
+    type: string;
+    size: number;
+    createdAt: string;
+    notes: string;
+    aiSummary: string;
+}
+
+export interface Store {
+    id: string;
+    storeName: string;
+    location: string;
+    ownerUid: string;
+}
+
+export interface Report {
+    id: string;
+    content: string;
+    submittedBy: string; // email or uid
+    timestamp: string;
+    type: string;
+}
+
+export interface OwnerDashboardProps {
+    submissions: Submission[];
 }

@@ -1,15 +1,29 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGithubDb } from './hooks/useGithubDb';
 import EmployeeDashboard from './components/EmployeeDashboard';
 import ManagerAccess from './components/ManagerAccess';
-import { AppProps, GithubDb, Submission } from './types';
+import AuthScreen from './components/AuthScreen';
+import UserProfile from './components/UserProfile';
+import FileManager from './components/FileManager';
+import OwnerDashboard from './components/OwnerDashboard';
+import { AppProps, GithubDb, Submission, User } from './types';
+import { auth, db as firestoreDb } from './services/firebase';
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 declare const __app_id: string | undefined;
 
 const App: React.FC<AppProps> = () => {
-    const { db, userId, isLoading, error, updateDb } = useGithubDb();
+    const { db, isLoading: isDbLoading, error, updateDb } = useGithubDb();
     const [view, setView] = useState('employee'); 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    
+    // Auth State (Managed via Firebase)
+    const [user, setUser] = useState<User | null>(null);
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+    // Theme State
     const [theme, setTheme] = useState(() => {
         if (typeof window !== 'undefined') {
             const savedTheme = localStorage.getItem('theme');
@@ -18,6 +32,63 @@ const App: React.FC<AppProps> = () => {
         }
         return 'light';
     });
+
+    useEffect(() => {
+        // Subscribe to Firebase Auth changes
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser && firebaseUser.emailVerified) {
+                // Fetch User Details from Firestore for RBAC
+                try {
+                    const userDocRef = doc(firestoreDb, "users", firebaseUser.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+                    
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        
+                        // Check if active
+                        if (userData.isActive === false) {
+                            await signOut(auth);
+                            alert("Your account has been deactivated. Please contact the administrator.");
+                            setUser(null);
+                        } else {
+                            const appUser: User = {
+                                uid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                displayName: firebaseUser.displayName,
+                                photoURL: firebaseUser.photoURL,
+                                emailVerified: firebaseUser.emailVerified,
+                                role: userData.role || 'employee',
+                                isActive: userData.isActive ?? true,
+                                storeId: userData.storeId || ''
+                            };
+                            setUser(appUser);
+                        }
+                    } else {
+                        // Fallback if firestore doc missing (should typically be handled in AuthScreen)
+                        const appUser: User = {
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            displayName: firebaseUser.displayName,
+                            photoURL: firebaseUser.photoURL,
+                            emailVerified: firebaseUser.emailVerified,
+                            role: 'employee',
+                            isActive: true
+                        };
+                        setUser(appUser);
+                    }
+                } catch (error) {
+                    console.error("Error fetching user role:", error);
+                }
+            } else {
+                // If user is not logged in OR not verified, treat as null in main App
+                setUser(null);
+            }
+            setIsAuthLoading(false);
+        });
+
+        // Cleanup subscription
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -41,6 +112,15 @@ const App: React.FC<AppProps> = () => {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            setView('employee');
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
+
     const handleAddSubmission = async (submission: Omit<Submission, 'id' | 'timestamp'>) => {
         if (!db) return;
         const newSubmission: Submission = {
@@ -55,6 +135,21 @@ const App: React.FC<AppProps> = () => {
         await updateDb(newDb);
     };
     
+    // Auth Loading Screen
+    if (isAuthLoading) {
+        return (
+             <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-secondary)]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-border-accent)]"></div>
+            </div>
+        );
+    }
+
+    // Not Authenticated (or not verified) -> Show Auth Screen
+    if (!user) {
+        return <AuthScreen />;
+    }
+
+    // Authenticated but DB Error
     if (error) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-secondary)] font-sans">
@@ -67,13 +162,13 @@ const App: React.FC<AppProps> = () => {
         );
     }
 
-    if (isLoading || !db) {
+    // Authenticated but DB Loading
+    if (isDbLoading || !db) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-secondary)]">
                 <div className="text-center p-8 bg-[var(--color-bg-primary)] rounded-lg shadow-lg">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-border-accent)] mx-auto mb-4"></div>
-                    <p className="text-[var(--color-text-primary)]">Connecting to GitHub Backend...</p>
-                    <p className="text-xs text-[var(--color-text-subtle)] mt-2">App ID: {appId}</p>
+                    <p className="text-[var(--color-text-primary)]">Connecting to Database...</p>
                 </div>
             </div>
         ); 
@@ -93,17 +188,34 @@ const App: React.FC<AppProps> = () => {
             `}</style>
             
             <header className="bg-[var(--color-bg-accent-primary)] shadow-lg sticky top-0 z-10 print:hidden">
-                <div className="max-w-4xl mx-auto p-4 flex justify-between items-center">
+                <div className="max-w-4xl mx-auto p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <h1 className="text-2xl font-black text-white">
-                        Paige’s Bistro Shift Compliance App
+                        Paige’s Bistro
                     </h1>
-                    <div className="flex space-x-2 items-center">
+                    <div className="flex flex-wrap justify-center gap-2 items-center">
                         <button onClick={() => setView('employee')} className={`px-3 py-1 rounded-full text-sm font-semibold transition ${view === 'employee' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-accent)] shadow-md' : 'text-indigo-200 hover:text-white'}`}>
-                            Employee Tasks
+                            Tasks
                         </button>
-                        <button onClick={() => setView('manager')} className={`px-3 py-1 rounded-full text-sm font-semibold transition ${view === 'manager' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-accent)] shadow-md' : 'text-indigo-200 hover:text-white'}`}>
-                            Manager / Audit
+                        
+                        {(user.role === 'manager' || user.role === 'owner') && (
+                            <button onClick={() => setView('manager')} className={`px-3 py-1 rounded-full text-sm font-semibold transition ${view === 'manager' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-accent)] shadow-md' : 'text-indigo-200 hover:text-white'}`}>
+                                Manager
+                            </button>
+                        )}
+
+                        {user.role === 'owner' && (
+                            <button onClick={() => setView('owner')} className={`px-3 py-1 rounded-full text-sm font-semibold transition ${view === 'owner' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-accent)] shadow-md' : 'text-indigo-200 hover:text-white'}`}>
+                                Owner
+                            </button>
+                        )}
+
+                        <button onClick={() => setView('files')} className={`px-3 py-1 rounded-full text-sm font-semibold transition ${view === 'files' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-accent)] shadow-md' : 'text-indigo-200 hover:text-white'}`}>
+                            Files
                         </button>
+                         <button onClick={() => setView('profile')} className={`px-3 py-1 rounded-full text-sm font-semibold transition ${view === 'profile' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-accent)] shadow-md' : 'text-indigo-200 hover:text-white'}`}>
+                            Profile
+                        </button>
+                        <div className="h-6 w-px bg-indigo-400/50 mx-1"></div>
                         <button onClick={toggleTheme} className="p-2 rounded-full text-indigo-200 hover:text-white hover:bg-black/20 transition" title="Toggle Theme">
                             {theme === 'light' ? (
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -116,10 +228,15 @@ const App: React.FC<AppProps> = () => {
                             )}
                         </button>
                         <button onClick={handleExitFullscreen} className="px-3 py-1 rounded-full text-sm font-semibold transition bg-indigo-500 text-white hover:bg-indigo-700 flex items-center" title="Exit Fullscreen Mode">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            Exit FS
+                        </button>
+                        <button onClick={handleLogout} className="px-3 py-1 rounded-full text-sm font-semibold transition bg-red-500 text-white hover:bg-red-700 flex items-center" title="Sign Out">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Sign Out
                         </button>
                     </div>
                 </div>
@@ -127,19 +244,35 @@ const App: React.FC<AppProps> = () => {
 
             <main className="max-w-4xl mx-auto p-4 md:p-8">
                 <div className="text-center mb-6">
-                    <p className="text-sm font-medium text-[var(--color-text-secondary)]">Your Current User ID: <span className="text-[var(--color-text-accent)] font-mono">{userId}</span></p>
+                    <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                        Logged in as: <span className="text-[var(--color-text-accent)] font-mono">{user.email}</span>
+                        {user.displayName && <span className="text-[var(--color-text-primary)]"> ({user.displayName})</span>}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-subtle)] mt-1">Role: {user.role?.toUpperCase()}</p>
                 </div>
                 
                 {view === 'employee' && (
                     <EmployeeDashboard 
-                        userId={userId} 
+                        userId={user.uid} 
                         checklists={db.checklists}
                         onAddSubmission={handleAddSubmission}
                     />
                 )}
 
                 {view === 'manager' && (
-                    <ManagerAccess db={db} onUpdateDb={updateDb} />
+                    <ManagerAccess db={db} onUpdateDb={updateDb} user={user} />
+                )}
+
+                {view === 'owner' && user.role === 'owner' && (
+                    <OwnerDashboard submissions={db.submissions} />
+                )}
+
+                {view === 'files' && (
+                    <FileManager user={user} />
+                )}
+
+                {view === 'profile' && (
+                    <UserProfile user={user} onLogout={handleLogout} />
                 )}
             </main>
         </div>

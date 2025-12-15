@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Checklist, TempLogs, EmployeeDashboardProps } from '../types';
@@ -153,7 +154,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
                 setEmployeeName(''); 
                 setLocation('Austell');
                 setCompletionTime('09:00'); 
-                setSubmissionMessage({ text: `${selectedList.name} submitted successfully by ${employeeName} (${location})!`, type: 'success' });
+                setSubmissionMessage({ text: 'Form Successfully Submitted', type: 'success' });
             } catch (error) {
                 console.error("Error submitting checklist:", error);
                 setSubmissionMessage({ text: `Submission failed: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' });
@@ -179,7 +180,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
         <div className="space-y-6">
             <h2 className="text-2xl font-extrabold text-[var(--color-text-primary)] border-b border-[var(--color-border-primary)] pb-2">👋 Employee Dashboard: Daily Tasks</h2>
             
-            {submissionMessage.text && <div className={`p-3 border rounded-lg font-medium ${getMessageStyle(submissionMessage.type)}`}>{submissionMessage.text}</div>}
+            {submissionMessage.text && <div className={`p-3 border rounded-lg font-medium animate-fade-in ${getMessageStyle(submissionMessage.type)}`}>{submissionMessage.text}</div>}
 
             <div className="bg-[var(--color-bg-primary)] p-5 rounded-xl shadow-lg border-t-4 border-[var(--color-border-accent)] space-y-4">
                  <h3 className="text-xl font-bold text-[var(--color-text-accent)]">Task Information</h3>
@@ -217,20 +218,34 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ userId, checklist
             {requiresTempLog && <TemperatureLogForm tempLogs={tempLogs} listId={selectedListId} onTempChange={handleTempChangeFromForm}/>}
 
             {selectedList && (
-                <div className="bg-[var(--color-bg-primary)] p-5 rounded-xl shadow-lg border-t-4 border-[var(--color-accent-secondary)]">
+                <div className="bg-[var(--color-bg-primary)] p-5 rounded-xl shadow-lg border-t-4 border-[var(--color-accent-secondary)] animate-fade-in">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-xl font-bold text-[var(--color-accent-secondary)]">{selectedList.name}</h3>
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isComplete ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'}`}>{completedCount}/{totalCount}</span>
+                        <span className={`text-sm font-semibold px-3 py-1 rounded-full transition-colors duration-300 ${isComplete ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'}`}>{completedCount}/{totalCount}</span>
                     </div>
                     <ul className="space-y-3">
-                        {selectedList.tasks.map((task, index) => (
-                            <li key={index} className="flex items-start">
-                                <input type="checkbox" checked={!!taskStatus[`${selectedListId}-${index}`]} onChange={() => handleCheck(index)} disabled={requiresTempLog && index >= getTempStartIndex(selectedListId)} className="mt-1 h-5 w-5 text-[var(--color-accent-secondary)] border-[var(--color-border-secondary)] rounded focus:ring-[var(--color-accent-secondary)] cursor-pointer disabled:opacity-50"/>
-                                <span className={`ml-3 text-[var(--color-text-primary)] flex-1 ${taskStatus[`${selectedListId}-${index}`] ? 'line-through text-[var(--color-text-subtle)]' : ''}`}>{task}</span>
-                            </li>
-                        ))}
+                        {selectedList.tasks.map((task, index) => {
+                            const isChecked = !!taskStatus[`${selectedListId}-${index}`];
+                            return (
+                                <li 
+                                    key={index} 
+                                    className={`flex items-start p-2 rounded-lg transition-all duration-300 ease-in-out ${isChecked ? 'bg-[var(--color-bg-tertiary)] bg-opacity-50' : 'hover:bg-[var(--color-bg-tertiary)] hover:bg-opacity-30'}`}
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isChecked} 
+                                        onChange={() => handleCheck(index)} 
+                                        disabled={requiresTempLog && index >= getTempStartIndex(selectedListId)} 
+                                        className="mt-1 h-5 w-5 text-[var(--color-accent-secondary)] border-[var(--color-border-secondary)] rounded focus:ring-[var(--color-accent-secondary)] cursor-pointer disabled:opacity-50 checkbox-pop transition-transform duration-200"
+                                    />
+                                    <span className={`ml-3 text-[var(--color-text-primary)] flex-1 transition-all duration-300 ${isChecked ? 'line-through text-[var(--color-text-subtle)] opacity-60 translate-x-1' : ''}`}>
+                                        {task}
+                                    </span>
+                                </li>
+                            );
+                        })}
                     </ul>
-                    <button onClick={handleSubmit} disabled={isDisabled} className={`mt-6 w-full py-3 rounded-xl text-white font-bold transition duration-300 shadow-lg ${isDisabled ? 'bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)] cursor-not-allowed' : 'bg-[var(--color-bg-accent-secondary)] hover:bg-[var(--color-bg-accent-secondary-hover)]'}`}>
+                    <button onClick={handleSubmit} disabled={isDisabled} className={`mt-6 w-full py-3 rounded-xl text-white font-bold transition duration-300 shadow-lg ${isDisabled ? 'bg-[var(--color-disabled-bg)] text-[var(--color-disabled-text)] cursor-not-allowed' : 'bg-[var(--color-bg-accent-secondary)] hover:bg-[var(--color-bg-accent-secondary-hover)] transform hover:scale-[1.01]'}`}>
                         {isComplete ? 'SUBMIT & NOTIFY MANAGER' : 'Complete All Requirements to Submit'}
                     </button>
                 </div>
