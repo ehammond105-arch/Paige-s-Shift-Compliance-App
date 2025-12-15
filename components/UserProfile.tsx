@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, updateProfile, deleteUser } from "firebase/auth";
+import { updateProfile, deleteUser } from "firebase/auth";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, auth } from '../services/firebase';
+import { User } from '../types';
 
 interface UserProfileProps {
     user: User;

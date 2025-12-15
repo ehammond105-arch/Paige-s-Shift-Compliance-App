@@ -10,12 +10,13 @@ import OwnerDashboard from './components/OwnerDashboard';
 import { AppProps, GithubDb, Submission, User } from './types';
 import { auth, db as firestoreDb } from './services/firebase';
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 
 declare const __app_id: string | undefined;
 
 const App: React.FC<AppProps> = () => {
-    const { db, isLoading: isDbLoading, error, updateDb } = useGithubDb();
+    const { db: githubDb, isLoading: isGithubLoading, error: githubError, updateDb: updateGithubDb } = useGithubDb();
+    const [firebaseSubmissions, setFirebaseSubmissions] = useState<Submission[]>([]);
     const [view, setView] = useState('employee'); 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     
@@ -32,6 +33,30 @@ const App: React.FC<AppProps> = () => {
         }
         return 'light';
     });
+
+    // Fetch Submissions from Firebase
+    useEffect(() => {
+        // Only fetch submissions if user is logged in AND is a manager or owner.
+        // Employees usually don't have permission to view the global submissions log.
+        if (!user || (user.role !== 'manager' && user.role !== 'owner')) {
+            setFirebaseSubmissions([]);
+            return;
+        }
+
+        const q = query(collection(firestoreDb, "submissions"), orderBy("timestamp", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+             const subs = snapshot.docs.map(doc => ({
+                 id: doc.id,
+                 ...doc.data()
+             })) as Submission[];
+             setFirebaseSubmissions(subs);
+        }, (error) => {
+            console.error("Error fetching submissions from Firebase:", error);
+            // Permissions error is expected if role check fails or backend rules are strict
+        });
+
+        return () => unsubscribe();
+    }, [user]);
 
     useEffect(() => {
         // Subscribe to Firebase Auth changes
@@ -122,17 +147,18 @@ const App: React.FC<AppProps> = () => {
     };
 
     const handleAddSubmission = async (submission: Omit<Submission, 'id' | 'timestamp'>) => {
-        if (!db) return;
-        const newSubmission: Submission = {
-            ...submission,
-            id: `${Date.now()}-${Math.random()}`, // Simple unique ID
-            timestamp: new Date().toISOString(),
-        };
-        const newDb: GithubDb = {
-            ...db,
-            submissions: [...db.submissions, newSubmission],
-        };
-        await updateDb(newDb);
+        try {
+            await addDoc(collection(firestoreDb, "submissions"), {
+                ...submission,
+                timestamp: new Date().toISOString()
+            });
+            // No local state update needed; Firestore listener will update `firebaseSubmissions` if applicable
+        } catch (error) {
+            console.error("Error submitting to Firebase:", error);
+            // Permissions error usually means "create" is denied, but typically standard rules allow "create" for auth users.
+            // If it fails, we show alert.
+            alert("Failed to save submission. Check connection or permissions.");
+        }
     };
     
     // Auth Loading Screen
@@ -150,20 +176,20 @@ const App: React.FC<AppProps> = () => {
     }
 
     // Authenticated but DB Error
-    if (error) {
+    if (githubError) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-secondary)] font-sans">
                 <div className="text-center p-8 bg-[var(--color-bg-primary)] rounded-lg shadow-lg border-2 border-[var(--color-error-border)] max-w-lg">
                     <h2 className="text-2xl font-bold text-[var(--color-error-text)] mb-4">Application Error</h2>
                     <p className="text-[var(--color-text-primary)]">Could not connect to the GitHub backend. Please check the configuration and network status.</p>
-                    <p className="text-sm text-[var(--color-error-text)] bg-[var(--color-error-bg)] p-3 mt-4 rounded-md font-mono break-all">{error}</p>
+                    <p className="text-sm text-[var(--color-error-text)] bg-[var(--color-error-bg)] p-3 mt-4 rounded-md font-mono break-all">{githubError}</p>
                 </div>
             </div>
         );
     }
 
     // Authenticated but DB Loading
-    if (isDbLoading || !db) {
+    if (isGithubLoading || !githubDb) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-secondary)]">
                 <div className="text-center p-8 bg-[var(--color-bg-primary)] rounded-lg shadow-lg">
@@ -173,6 +199,12 @@ const App: React.FC<AppProps> = () => {
             </div>
         ); 
     }
+
+    // Merge GitHub Checklists with Firebase Submissions for the view
+    const combinedDb: GithubDb = {
+        ...githubDb,
+        submissions: firebaseSubmissions
+    };
 
     return (
         <div className="min-h-screen bg-[var(--color-bg-secondary)] font-sans text-[var(--color-text-primary)]">
@@ -254,17 +286,17 @@ const App: React.FC<AppProps> = () => {
                 {view === 'employee' && (
                     <EmployeeDashboard 
                         userId={user.uid} 
-                        checklists={db.checklists}
+                        checklists={combinedDb.checklists}
                         onAddSubmission={handleAddSubmission}
                     />
                 )}
 
                 {view === 'manager' && (
-                    <ManagerAccess db={db} onUpdateDb={updateDb} user={user} />
+                    <ManagerAccess db={combinedDb} onUpdateDb={updateGithubDb} user={user} />
                 )}
 
                 {view === 'owner' && user.role === 'owner' && (
-                    <OwnerDashboard submissions={db.submissions} />
+                    <OwnerDashboard submissions={combinedDb.submissions} />
                 )}
 
                 {view === 'files' && (
