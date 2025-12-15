@@ -5,7 +5,7 @@ import { collection, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore'
 import { User, Store, UserRole, OwnerDashboardProps } from '../types';
 import ManagerActivityLog from './ManagerActivityLog';
 
-const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ submissions }) => {
+const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ submissions, reports }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [stores, setStores] = useState<Store[]>([]);
     const [newStoreName, setNewStoreName] = useState('');
@@ -151,7 +151,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ submissions }) => {
 
             {/* Activity Log for Owner */}
             <div className="border-t border-[var(--color-border-primary)] my-8"></div>
-            <ManagerActivityLog submissions={submissions} />
+            <ManagerActivityLog submissions={submissions} reports={reports} />
         </div>
     );
 };

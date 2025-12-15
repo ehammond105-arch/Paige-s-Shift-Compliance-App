@@ -7,7 +7,7 @@ import AuthScreen from './components/AuthScreen';
 import UserProfile from './components/UserProfile';
 import FileManager from './components/FileManager';
 import OwnerDashboard from './components/OwnerDashboard';
-import { AppProps, GithubDb, Submission, User } from './types';
+import { AppProps, GithubDb, Submission, User, Report } from './types';
 import { auth, db as firestoreDb } from './services/firebase';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
@@ -17,6 +17,7 @@ declare const __app_id: string | undefined;
 const App: React.FC<AppProps> = () => {
     const { db: githubDb, isLoading: isGithubLoading, error: githubError, updateDb: updateGithubDb } = useGithubDb();
     const [firebaseSubmissions, setFirebaseSubmissions] = useState<Submission[]>([]);
+    const [firebaseReports, setFirebaseReports] = useState<Report[]>([]);
     const [view, setView] = useState('employee'); 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     
@@ -34,17 +35,18 @@ const App: React.FC<AppProps> = () => {
         return 'light';
     });
 
-    // Fetch Submissions from Firebase
+    // Fetch Submissions and Reports from Firebase
     useEffect(() => {
-        // Only fetch submissions if user is logged in AND is a manager or owner.
-        // Employees usually don't have permission to view the global submissions log.
+        // Only fetch data if user is logged in AND is a manager or owner.
         if (!user || (user.role !== 'manager' && user.role !== 'owner')) {
             setFirebaseSubmissions([]);
+            setFirebaseReports([]);
             return;
         }
 
-        const q = query(collection(firestoreDb, "submissions"), orderBy("timestamp", "desc"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        // 1. Fetch Submissions
+        const qSub = query(collection(firestoreDb, "submissions"), orderBy("timestamp", "desc"));
+        const unsubscribeSub = onSnapshot(qSub, (snapshot) => {
              const subs = snapshot.docs.map(doc => ({
                  id: doc.id,
                  ...doc.data()
@@ -52,10 +54,24 @@ const App: React.FC<AppProps> = () => {
              setFirebaseSubmissions(subs);
         }, (error) => {
             console.error("Error fetching submissions from Firebase:", error);
-            // Permissions error is expected if role check fails or backend rules are strict
         });
 
-        return () => unsubscribe();
+        // 2. Fetch Reports
+        const qRep = query(collection(firestoreDb, "reports"), orderBy("timestamp", "desc"));
+        const unsubscribeRep = onSnapshot(qRep, (snapshot) => {
+             const reps = snapshot.docs.map(doc => ({
+                 id: doc.id,
+                 ...doc.data()
+             })) as Report[];
+             setFirebaseReports(reps);
+        }, (error) => {
+            console.error("Error fetching reports from Firebase:", error);
+        });
+
+        return () => {
+            unsubscribeSub();
+            unsubscribeRep();
+        };
     }, [user]);
 
     useEffect(() => {
@@ -155,8 +171,6 @@ const App: React.FC<AppProps> = () => {
             // No local state update needed; Firestore listener will update `firebaseSubmissions` if applicable
         } catch (error) {
             console.error("Error submitting to Firebase:", error);
-            // Permissions error usually means "create" is denied, but typically standard rules allow "create" for auth users.
-            // If it fails, we show alert.
             alert("Failed to save submission. Check connection or permissions.");
         }
     };
@@ -200,10 +214,11 @@ const App: React.FC<AppProps> = () => {
         ); 
     }
 
-    // Merge GitHub Checklists with Firebase Submissions for the view
+    // Merge GitHub Checklists with Firebase Submissions/Reports for the view
     const combinedDb: GithubDb = {
         ...githubDb,
-        submissions: firebaseSubmissions
+        submissions: firebaseSubmissions,
+        reports: firebaseReports
     };
 
     return (
@@ -296,7 +311,7 @@ const App: React.FC<AppProps> = () => {
                 )}
 
                 {view === 'owner' && user.role === 'owner' && (
-                    <OwnerDashboard submissions={combinedDb.submissions} />
+                    <OwnerDashboard submissions={combinedDb.submissions} reports={combinedDb.reports} />
                 )}
 
                 {view === 'files' && (

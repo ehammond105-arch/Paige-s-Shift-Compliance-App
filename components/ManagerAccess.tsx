@@ -29,7 +29,7 @@ const ManagerAccess: React.FC<ManagerAccessProps> = ({ db, onUpdateDb, user }) =
                 <div className="border-t border-[var(--color-border-primary)] my-8"></div>
                 <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Checklist Management</h3>
                 <ManagerEditor checklists={db.checklists} onUpdateChecklists={handleUpdateChecklists} />
-                <ManagerActivityLog submissions={db.submissions} />
+                <ManagerActivityLog submissions={db.submissions} reports={db.reports} />
             </div>
         );
     }

@@ -25,9 +25,20 @@ export interface Submission {
   tempLogs: TempLogs | null;
 }
 
+export interface Report {
+    id: string;
+    content: string;
+    submittedBy: string; // email or uid
+    timestamp: string;
+    type: string;
+    role?: string;
+    storeId?: string;
+}
+
 export interface GithubDb {
   checklists: Checklist[];
   submissions: Submission[];
+  reports?: Report[];
 }
 
 export interface GithubState {
@@ -59,6 +70,7 @@ export interface ManagerEditorProps {
 
 export interface ManagerActivityLogProps {
     submissions: Submission[];
+    reports?: Report[];
 }
 
 export interface TemperatureLogFormProps {
@@ -99,14 +111,7 @@ export interface Store {
     ownerUid: string;
 }
 
-export interface Report {
-    id: string;
-    content: string;
-    submittedBy: string; // email or uid
-    timestamp: string;
-    type: string;
-}
-
 export interface OwnerDashboardProps {
     submissions: Submission[];
+    reports?: Report[];
 }
